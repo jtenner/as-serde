@@ -15,11 +15,11 @@ export class __arraySegment {
 }
 
 @unmanaged
-export class __valueSegment<T> {
+export class __valueSegment {
   type: AS_SERDE_INSTRUCTION_TYPE;
   size: i32;
   offset: usize;
-  value: T;
+  value: u64;
 }
 
 @unmanaged
