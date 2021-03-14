@@ -7,7 +7,7 @@ import {
   ClassDeclaration,
   NamespaceDeclaration,
 } from "assemblyscript";
-import { createPutFunction } from "./createPutFunction";
+import { createPutMethod } from "./createPutFunction";
 
 export = class SerdeTransform extends Transform {
   afterParse(parser: Parser): void {
@@ -20,7 +20,7 @@ export = class SerdeTransform extends Transform {
       traverseStatements(source.statements);
     }
   }
-}
+};
 
 function traverseStatements(statements: Statement[]): void {
   // for each statement in the source
@@ -29,7 +29,7 @@ function traverseStatements(statements: Statement[]): void {
     if (statement.kind === NodeKind.CLASSDECLARATION) {
       // cast and create a serialize and deserialize function
       const classDeclaration = <ClassDeclaration>statement;
-      classDeclaration.members.push(createPutFunction(classDeclaration));
+      classDeclaration.members.push(createPutMethod(classDeclaration));
     } else if (statement.kind === NodeKind.NAMESPACEDECLARATION) {
       const namespaceDeclaration = <NamespaceDeclaration>statement;
       traverseStatements(namespaceDeclaration.members);

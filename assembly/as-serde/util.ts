@@ -1,9 +1,11 @@
 export enum AS_SERDE_INSTRUCTION_TYPE {
+  NULL,
   PUSH,
   POP,
   VALUE,
   CIRCULAR,
-  ARRAY
+  ARRAY,
+  DATA,
 }
 
 @unmanaged
@@ -12,6 +14,7 @@ export class __arraySegment {
   isStaticArray: bool;
   offset: usize;
   id: u32;
+  classId: u32;
 }
 
 @unmanaged
@@ -43,4 +46,17 @@ export class __referenceSegment {
 @unmanaged
 export class __popSegment {
   type: AS_SERDE_INSTRUCTION_TYPE;
+}
+
+@unmanaged
+export class __dataSegment {
+  type: AS_SERDE_INSTRUCTION_TYPE;
+  byteLength: usize;
+  // dataStart: usize;
+}
+
+@unmanaged
+export class __nullSegment {
+  type: AS_SERDE_INSTRUCTION_TYPE;
+  offset: usize;
 }

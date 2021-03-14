@@ -4,16 +4,20 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node tests",
-    "asbuild:untouched": "asc assembly/index.ts --target debug",
-    "asbuild:optimized": "asc assembly/index.ts --target release",
-    "asbuild": "npm run asbuild:untouched && npm run asbuild:optimized"
+    "tsc": "tsc",
+    "asbuild:test": "asc test/index.ts --target debug --transform ./lib/transform.js",
+    "test": "run-s tsc asbuild:test test:untouched",
+    "test:untouched": "ts-node src/test.ts",
+    "prettier": "prettier --write \"**/src/**/*.ts\""
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^14.14.34",
     "assemblyscript": "^0.18.15",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^2.2.1",
+    "ts-node": "^9.1.1",
     "typescript": "^4.2.3"
   },
   "dependencies": {
