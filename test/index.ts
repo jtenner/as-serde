@@ -11,3 +11,5 @@ a.c = a;
 let s = new Serializer();
 s.put(a);
 let output = s.digestBinary();
+
+

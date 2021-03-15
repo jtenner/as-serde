@@ -78,6 +78,8 @@ export class Serializer {
     ref.type = AS_SERDE_INSTRUCTION_TYPE.VALUE;
     ref.size = sizeof<T>();
     ref.offset = offset;
+    ref.isFloat = isFloat<T>();
+
     // pack the bytes into the `value` property (has 8 in total)
     store<T>(changetype<usize>(ref), value, offsetof<__valueSegment>("value"));
     this.length = next;
@@ -103,21 +105,21 @@ export class Serializer {
       if (value instanceof StaticArray) {
         this.writeData(
           changetype<usize>(value),
-          changetype<OBJECT>(changetype<usize>(value) - TOTAL_OVERHEAD).rtSize
+          changetype<OBJECT>(changetype<usize>(value) - TOTAL_OVERHEAD).rtSize,
         );
       } else {
         // T is Array<valueof<T>>
         this.writeData(
           load<usize>(changetype<usize>(value), offsetof<T>("dataStart")),
           // @ts-ignore: value has length
-          <usize>(value.length << (alignof<valueof<T>>()))
+          <usize>(value.length << (alignof<valueof<T>>())),
         );
       }
     } else {
       // serialize the children
       // @ts-ignore: obtaining length on static array or array
       let arrayLength = value.length;
-      for (let i = 0; i < arrayLength; i++) {
+      for (let i: usize = 0; i < arrayLength; i++) {
         // @ts-ignore: unchecked get on array or static array
         this.put(unchecked(value[i]), i * sizeof<valueof<T>>(), seen);
       }
@@ -143,7 +145,7 @@ export class Serializer {
     ref.size = isManaged<T>()
       ? changetype<OBJECT>(ptr - TOTAL_OVERHEAD).rtSize
       : offsetof<T>();
-    ref.type = AS_SERDE_INSTRUCTION_TYPE.PUSH;
+    ref.type = AS_SERDE_INSTRUCTION_TYPE.REFERENCE;
     this.length = nextSize;
 
     // @ts-ignore: write it's children. This method is added by the transform to every class

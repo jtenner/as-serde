@@ -1,6 +1,6 @@
 export enum AS_SERDE_INSTRUCTION_TYPE {
   NULL,
-  PUSH,
+  REFERENCE,
   POP,
   VALUE,
   CIRCULAR,
@@ -21,6 +21,7 @@ export class __arraySegment {
 export class __valueSegment {
   type: AS_SERDE_INSTRUCTION_TYPE;
   size: i32;
+  isFloat: bool;
   offset: usize;
   value: u64;
 }
