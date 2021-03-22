@@ -9,7 +9,7 @@ import {
 } from "assemblyscript";
 import { createPutMethod } from "./createPutFunction";
 
-export = class SerdeTransform extends Transform {
+export = class ASONTransform extends Transform {
   afterParse(parser: Parser): void {
     // For backwards compatibility
     let sources: Source[] = (parser as any).program

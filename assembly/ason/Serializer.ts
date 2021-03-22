@@ -1,6 +1,6 @@
 import { OBJECT, TOTAL_OVERHEAD } from "rt/common";
 import {
-  AS_SERDE_INSTRUCTION_TYPE,
+  ASON_INSTRUCTION_TYPE,
   __circularSegment,
   __valueSegment,
   __dataSegment,
@@ -8,6 +8,7 @@ import {
   __referenceSegment,
   __popSegment,
   __nullSegment,
+  __endSegment,
 } from "./util";
 
 @global
@@ -17,7 +18,7 @@ export class Serializer {
   length: usize = 0;
   size: usize = 1000;
 
-  ensureSize(size: usize): void {
+  private ensureSize(size: usize): void {
     if (this.size < size) {
       this.ptr = heap.realloc(this.ptr, size);
       this.size = size;
@@ -55,8 +56,7 @@ export class Serializer {
     }
   }
 
-  writeCircular<T>(value: T, offset: usize, seen: Map<usize, u32>): void {
-    trace("writing circular");
+  private writeCircular<T>(value: T, offset: usize, seen: Map<usize, u32>): void {
     let len = this.length;
     let ptr = changetype<usize>(value);
     let nextSize = len + offsetof<__circularSegment>();
@@ -65,17 +65,16 @@ export class Serializer {
     ref.id = seen.get(ptr);
     ref.isManaged = isManaged(value);
     ref.offset = offset;
-    ref.type = AS_SERDE_INSTRUCTION_TYPE.CIRCULAR;
+    ref.type = ASON_INSTRUCTION_TYPE.CIRCULAR;
     this.length = nextSize;
   }
 
-  writeValue<T>(value: T, offset: usize): void {
-    trace("writing value");
+  private writeValue<T>(value: T, offset: usize): void {
     let len = this.length;
     let next = len + offsetof<__valueSegment>();
     this.ensureSize(next);
     let ref = changetype<__valueSegment>(this.ptr + len);
-    ref.type = AS_SERDE_INSTRUCTION_TYPE.VALUE;
+    ref.type = ASON_INSTRUCTION_TYPE.VALUE;
     ref.size = sizeof<T>();
     ref.offset = offset;
     ref.isFloat = isFloat<T>();
@@ -85,8 +84,7 @@ export class Serializer {
     this.length = next;
   }
 
-  writeArray<T>(value: T, offset: usize, seen: Map<usize, u32>): void {
-    trace("writing array");
+  private writeArray<T>(value: T, offset: usize, seen: Map<usize, u32>): void {
     let id = this.id++;
     seen.set(changetype<usize>(value), id);
     let len = this.length;
@@ -94,10 +92,17 @@ export class Serializer {
     let next = len + offsetof<__arraySegment>();
     this.ensureSize(next);
     let ref = changetype<__arraySegment>(this.ptr + len);
-    ref.type = AS_SERDE_INSTRUCTION_TYPE.ARRAY;
+    ref.type = ASON_INSTRUCTION_TYPE.ARRAY;
     ref.isStaticArray = value instanceof StaticArray;
+    // @ts-ignore: T has valueof type
+    ref.align = alignof<valueof<T>>();
+    // @ts-ignore: value has a length property
+    let valueLength = value.length;
+    ref.length = valueLength;
     ref.offset = offset;
     ref.classId = idof<T>();
+    ref.isValueNullable = isNullable<valueof<T>>();
+    ref.entryId = id;
     this.length = next;
 
     // @ts-ignore T is garunteed to be StaticArray or Array
@@ -129,65 +134,73 @@ export class Serializer {
     this.writePop();
   }
 
-  writeReference<T>(value: T, offset: usize, seen: Map<usize, u32>): void {
-    trace("writing reference");
+  private writeReference<T>(value: T, offset: usize, seen: Map<usize, u32>): void {
     let ptr = changetype<usize>(value);
     let len = this.length;
     let id = this.id++;
+    trace("writing ref at", 1, id);
     seen.set(ptr, id);
     let nextSize = len + offsetof<__referenceSegment>();
     this.ensureSize(nextSize);
     let ref = changetype<__referenceSegment>(this.ptr + len);
     ref.classId = isManaged<T>() ? idof<T>() : 0;
     ref.isManaged = isManaged<T>();
-    ref.id = id;
+    ref.entryId = id;
     ref.offset = offset;
-    ref.size = isManaged<T>()
+    ref.byteLength = isManaged<T>()
       ? changetype<OBJECT>(ptr - TOTAL_OVERHEAD).rtSize
       : offsetof<T>();
-    ref.type = AS_SERDE_INSTRUCTION_TYPE.REFERENCE;
+    ref.type = ASON_INSTRUCTION_TYPE.REFERENCE;
     this.length = nextSize;
 
     // @ts-ignore: write it's children. This method is added by the transform to every class
-    value.__serdePut(this, seen);
+    value.__asonPut(this, seen);
 
     this.writePop();
   }
 
-  writePop(): void {
-    trace("Writing Pop");
+  private writePop(): void {
     let len = this.length;
     let nextSize = len + offsetof<__popSegment>();
     this.ensureSize(nextSize);
     let popref = changetype<__popSegment>(this.ptr + len);
-    popref.type = AS_SERDE_INSTRUCTION_TYPE.POP;
+    popref.type = ASON_INSTRUCTION_TYPE.POP;
     this.length = nextSize;
   }
 
-  writeData(source: usize, byteLength: usize): void {
-    trace("Writing segment");
+  private writeData(source: usize, byteLength: usize): void {
     let len = this.length;
     let nextSize = len + offsetof<__dataSegment>() + byteLength;
     this.ensureSize(nextSize);
     let dataref = changetype<__dataSegment>(this.ptr + len);
-    dataref.type = AS_SERDE_INSTRUCTION_TYPE.DATA;
+    dataref.type = ASON_INSTRUCTION_TYPE.DATA;
     dataref.byteLength = byteLength;
     let target = changetype<usize>(dataref) + offsetof<__dataSegment>();
     memory.copy(target, source, byteLength);
     this.length = nextSize;
   }
 
-  writeNull(offset: usize): void {
+  private writeNull(offset: usize): void {
     let len = this.length;
     let nextSize = len + offsetof<__nullSegment>();
     this.ensureSize(nextSize);
     let nullref = changetype<__nullSegment>(this.ptr + len);
-    nullref.type = AS_SERDE_INSTRUCTION_TYPE.NULL;
+    nullref.type = ASON_INSTRUCTION_TYPE.NULL;
     nullref.offset = offset;
     this.length = nextSize;
   }
 
+  private writeEnd(): void {
+    let len = this.length;
+    let nextSize = len + offsetof<__endSegment>();
+    this.ensureSize(nextSize);
+    let endref = changetype<__endSegment>(this.ptr + len);
+    endref.type = ASON_INSTRUCTION_TYPE.END;
+    this.length = nextSize;
+  }
+
   digestBinary(): StaticArray<u8> {
+    this.writeEnd();
     let ptr = this.ptr;
     this.ptr = 0;
     let length = this.length;

@@ -1,4 +1,4 @@
-export enum AS_SERDE_INSTRUCTION_TYPE {
+export enum ASON_INSTRUCTION_TYPE {
   NULL,
   REFERENCE,
   POP,
@@ -6,20 +6,29 @@ export enum AS_SERDE_INSTRUCTION_TYPE {
   CIRCULAR,
   ARRAY,
   DATA,
+  END,
+}
+
+@unmanaged
+export class __endSegment {
+  type: ASON_INSTRUCTION_TYPE;
 }
 
 @unmanaged
 export class __arraySegment {
-  type: AS_SERDE_INSTRUCTION_TYPE;
+  type: ASON_INSTRUCTION_TYPE;
   isStaticArray: bool;
   offset: usize;
-  id: u32;
+  length: i32;
+  align: usize;
+  isValueNullable: bool;
+  entryId: u32;
   classId: u32;
 }
 
 @unmanaged
 export class __valueSegment {
-  type: AS_SERDE_INSTRUCTION_TYPE;
+  type: ASON_INSTRUCTION_TYPE;
   size: i32;
   isFloat: bool;
   offset: usize;
@@ -28,7 +37,7 @@ export class __valueSegment {
 
 @unmanaged
 export class __circularSegment {
-  type: AS_SERDE_INSTRUCTION_TYPE;
+  type: ASON_INSTRUCTION_TYPE;
   offset: usize;
   isManaged: bool;
   id: u32;
@@ -36,28 +45,29 @@ export class __circularSegment {
 
 @unmanaged
 export class __referenceSegment {
-  type: AS_SERDE_INSTRUCTION_TYPE;
+  type: ASON_INSTRUCTION_TYPE;
   classId: u32;
   offset: usize;
-  size: usize;
+  byteLength: usize;
   isManaged: bool;
-  id: u32;
+  entryId: u32;
 }
 
 @unmanaged
 export class __popSegment {
-  type: AS_SERDE_INSTRUCTION_TYPE;
+  type: ASON_INSTRUCTION_TYPE;
 }
 
 @unmanaged
 export class __dataSegment {
-  type: AS_SERDE_INSTRUCTION_TYPE;
+  type: ASON_INSTRUCTION_TYPE;
   byteLength: usize;
+  // data segment follows
   // dataStart: usize;
 }
 
 @unmanaged
 export class __nullSegment {
-  type: AS_SERDE_INSTRUCTION_TYPE;
+  type: ASON_INSTRUCTION_TYPE;
   offset: usize;
 }

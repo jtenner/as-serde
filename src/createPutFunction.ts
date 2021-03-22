@@ -24,7 +24,7 @@ export function createPutMethod(
   classDeclaration: ClassDeclaration,
 ): MethodDeclaration {
   return TypeNode.createMethodDeclaration(
-    TypeNode.createIdentifierExpression("__serdePut", classDeclaration.range),
+    TypeNode.createIdentifierExpression("__asonPut", classDeclaration.range),
     null,
     // if the class is generic, we need to specify the method is generic too
     CommonFlags.PUBLIC |
@@ -40,7 +40,7 @@ export function createPutMethod(
 export function createFunctionType(
   classDeclaration: ClassDeclaration,
 ): FunctionTypeNode {
-  // __serdePut(ser: Serializer, seen: Map<usize, u32>, names: StaticArray<u32> = []): void
+  // __asonPut(ser: Serializer, seen: Map<usize, u32>, names: StaticArray<u32> = []): void
   return TypeNode.createFunctionType(
     [
       createSerializerParameter(classDeclaration),
@@ -142,7 +142,7 @@ export function createBody(classDeclaration: ClassDeclaration): BlockStatement {
         // field declarations, both public and private must be serialized
         case NodeKind.FIELDDECLARATION: {
           const field = member as FieldDeclaration;
-          body.push(createSerdePutCall(classDeclaration, field));
+          body.push(createAsonPutCall(classDeclaration, field));
           names.push(field.name.text);
         }
       }
@@ -168,7 +168,7 @@ export function createSuperPut(
         TypeNode.createPropertyAccessExpression(
           TypeNode.createSuperExpression(classDeclaration.range),
           TypeNode.createIdentifierExpression(
-            "__serdePut",
+            "__asonPut",
             classDeclaration.range,
           ),
           classDeclaration.range,
@@ -176,13 +176,13 @@ export function createSuperPut(
       ],
       classDeclaration.range,
     ),
-    // super.__serdePut(ser: Serializer, seen: Map<usize, u32>, names: StaticArray<u32> = [])
+    // super.__asonPut(ser: Serializer, seen: Map<usize, u32>, names: StaticArray<u32> = [])
     TypeNode.createExpressionStatement(
       TypeNode.createCallExpression(
         TypeNode.createPropertyAccessExpression(
           TypeNode.createSuperExpression(classDeclaration.range),
           TypeNode.createIdentifierExpression(
-            "__serderPut",
+            "__asonPut",
             classDeclaration.range,
           ),
           classDeclaration.range,
@@ -217,7 +217,7 @@ export function createSuperPut(
   );
 }
 
-export function createSerdePutCall(
+export function createAsonPutCall(
   classDeclaration: ClassDeclaration,
   field: FieldDeclaration,
 ): IfStatement {
